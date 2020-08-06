@@ -121,37 +121,50 @@ class Board:
         If no 'target' is specified, it will use current player.symbol one.
         If no occurrences take place, raises NoMove exception.
         """
-        print('Completing triples')
         if not target:
             target = self.player
             
         board = self.board
 
+        def try_fill(array3, i):
+            if np.sum(array3[i] == target) == 2 and \
+               np.sum(array3[i] == '') == 1:
+                array3[i][array3[i] == ''] = self.player
+                return True
+        
         # Rows
         for i in range(3):
-            if np.sum(self.rows[i] == target) == 2:
-                self.rows[i][self.rows[i] == ''] = self.player
+            if try_fill(self.rows, i):
                 return None
+            # if np.sum(self.rows[i] == target) == 2 and \
+            #    np.sum(self.rows[i] == '') == 1:
+            #     self.rows[i][self.rows[i] == ''] = self.player
+            #     return None
 
         # Columns
         for j in range(3):
-            if np.sum(self.columns[j] == target) == 2:
-                self.columns[j][self.rows[j] == ''] = self.player
+            if try_fill(self.columns, j):
                 return None
+            # if np.sum(self.columns[j] == target) == 2 and \
+            #    np.sum(self.columns[j] == '') == 1:
+            #     self.columns[j][self.columns[j] == ''] = self.player
+            #     return None
 
         # Diagonals
         diagonal0, diagonal1 = self.get_diagonals()
-        if np.sum(diagonal0 == target) == 2:
+        if np.sum(diagonal0 == target) == 2 and \
+           np.sum(diagonal0 == '') == 1:
             diagonal0[diagonal0 == ''] = self.player
             self.board[np.diag_indices_from(self.board)] = diagonal0
             return None
-        if np.sum(diagonal1 == target) == 2:
+        if np.sum(diagonal1 == target) == 2 and \
+           np.sum(diagonal0 == '') == 1:
             diagonal1[diagonal1 == ''] = self.player
             # Inverted diagonal indices
             dinv = (np.array([0, 1, 2]), np.array([2, 1, 0]))
             self.board[dinv] = diagonal1
             return None
-
+        
         raise NoMove
     
     def win_move(self):
@@ -160,9 +173,9 @@ class Board:
         self.symbol and completes it to win.
         If no occurrences take place, raises NoMove exception.
         """
-        print('Trying to win...', end='')
+        print('Trying to win...')
         self.complete_triple()
-        print('Could not')
+        print('Won')
     
 
     def avoid_losing(self):
@@ -175,15 +188,27 @@ class Board:
             target = 'o'
         else:
             target = 'x'
-        print('Avoiding loosing...', end='')
+        print('Avoiding losing...')
         self.complete_triple(target)
-        print('No need')
+        print('Achieved')
+
+    def defend_corner(self):
+        """
+        Checks if the user has filled one of the corners.
+        Fills the center case if True and returns True.
+        Else returns False.
+        """
+        ### IMPLEMENT ME
+        pass
 
         
     def computer_turn(self):
         self.turns += 1
         input('Computer turn... (Press any key to continue)')
         if self.turns <= 2:
+            if self.turns == 2:
+                if self.defend_corner():
+                    return None
             try:
                 self.fill_corner()
                 return None
@@ -202,18 +227,18 @@ class Board:
         except NoMove:
             pass
 
-        if self.turns <= 4:
-            try:
-                self.diagonal_free()
-                return None
-            except NoMove:
-                pass
 
-            try:
-                self.fill_corner()
-                return None
-            except NoMove:
-                pass      
+        try:
+            self.diagonal_free()
+            return None
+        except NoMove:
+            pass
+
+        try:
+            self.fill_corner()
+            return None
+        except NoMove:
+            pass     
         
         # If no other possible options
         self.fill_next()
@@ -329,14 +354,12 @@ class Board:
         return board_str
 
 board = Board()
-def f():
-    raise NoMove
+board.play()
+a = np.ones(shape=(2,2))
 
-def call_f():
-    return f()
-
-call_f()
-#board.play()
+def f(array_, index):
+    array_[index][0] = 2
+    
 # for i in range(3):
 #     for j in range(3):
 #         board.set_case(i, j, 'x') #if (i + j) % 2 == 0 else 'o')
