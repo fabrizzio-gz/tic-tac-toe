@@ -4,7 +4,7 @@
 A tic-tac-toe game.
 
 ## Current state
-- User vs. computer command line playable.
+- User vs. computer, command line playable.
 
 ## To do
 - Player 1 vs. player 2.
