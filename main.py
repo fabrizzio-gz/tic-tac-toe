@@ -1,7 +1,7 @@
 # tic-tac-toe
 import numpy as np
 from itertools import cycle
-
+from random import shuffle
 
 class NoMove(Exception):
     pass
@@ -9,20 +9,22 @@ class NoMove(Exception):
 class Board:
 
     players = cycle('xo')
-    
-    
+
     def __init__(self):
-        self.board = np.array([['','',''], ['','',''], ['','','']])
+        self.board = np.array([['', '', ''], ['', '', ''], ['', '', '']])
         self.rows = [self.board[0], self.board[1], self.board[2]]
-        self.columns = [self.board[:,0], self.board[:,1], self.board[:,2]]
+        self.columns = [self.board[:, 0], self.board[:, 1], self.board[:, 2]]
+        # Top to bottom, left to right diagonal
+        self.diag0 = np.einsum('ii->i', self.board)
+        # To to bottom, right to left diagonal
+        self.diag1 = np.einsum('ii->i', np.fliplr(self.board))
+        self.diags = [self.diag0, self.diag1]
         self.player = next(Board.players)
         self.user_score = 0
         self.computer_score = 0
         self.turns = 0
-        
-        
 
-    def set_case(self, i, j, player = None):
+    def set_case(self, i, j, player=None):
         """
         i, j: The i and j indexes of the case. Starting from top left
               corner.
@@ -31,48 +33,60 @@ class Board:
         self.turns += 1
         if not player:
             player = self.player
-        
         # Error checking
         assert i <= 2, "Invalid i case"
         assert j <= 2, "Invalid j case"
         assert player in ('x', 'o'), "Usage: symbol 'x' or 'o'"
         assert not self.board[i][j], "Case already set"
-        
+
         self.board[i][j] = player
         print(self)
-        #return 0
 
-
-    def check_winner(self, player = None):
+    def check_winner(self, player=None):
+        """
+        player: The token to check
+        Checks if a rouw, column or diagonal is filled with 'player' token.
+        If no 'player' token is given, uses curren self.player one.
+        Returns True if condition valid. False otherwise.
+        """
         if not player:
             player = self.player
-        board = self.board
 
         # Horizontal win
         for i in range(3):
-            for j in range(3):
-                if not self.rows[i][j] == player:
-                    break
-            else:
+            if np.sum(self.rows[i] == player) == 3:
                 print('Horizontal check')
                 return True
-            
+
+            # for j in range(3):
+            #     if not self.rows[i][j] == player:
+            #         break
+            # else:
+            #     print('Horizontal check')
+            #     return True
+
         # Vertical win
         for j in range(3):
-            for i in range(3):
-                if not self.columns[j][i] == player:
-                    break
-            else:
+            if np.sum(self.columns[j] == player) == 3:
                 print('Vertical check')
                 return True
+            # for i in range(3):
+            #     if not self.columns[j][i] == player:
+            #         break
+            # else:
+            #     print('Vertical check')
+            #     return True
 
         # Diagonal win
-        if (board[0][0], board[1][1], board[2][2]) == (player, player, player) or \
-           (board[2][0], board[1][1], board[0][2]) == (player, player, player):
-            print('Diagonal Check')
-            return True
+        for d in range(2):
+            if np.sum(self.diags[d] == player) == 3:
+                print('Diagonal check')
+                return True
+        # if (board[0][0], board[1][1], board[2][2]) == (player, player, player) or \
+        #    (board[2][0], board[1][1], board[0][2]) == (player, player, player):
+        #     print('Diagonal Check')
+        #     return True
 
-        #print('No winner')
         return False
 
     def fill_next(self):
@@ -81,22 +95,38 @@ class Board:
                 if not self.board[i][j]:
                     self.board[i][j] = self.player
                     return None
-                    
 
     def fill_corner(self):
+        """
+        Chooses one corner randomly, if it's empty, fills it 
+        with self.player token.
+        Raises NoMove exception if not possible for all corner. 
+        """
         board = self.board
-        if not board[0][0]:
-            board[0][0] = self.player
-        elif not board[0][2]:
-            board[0][2] = self.player
-        elif not board[2][0]:
-            board[2][0] = self.player
-        elif not board[2][2]:
-            board[2][2] = self.player
+        random_corners = list(range(4))
+        shuffle(random_corners)
+        for i in random_corners:
+            if i == 0 and not board[0][0]:
+                board[0][0] = self.player
+                break
+            elif i == 1 and not board[0][2]:
+                board[0][2] = self.player
+                break
+            elif i == 2 and not board[2][0]:
+                board[2][0] = self.player
+                break
+            elif i == 3 and not board[2][2]:
+                board[2][2] = self.player
+                break
         else:
             raise NoMove
         
     def diagonal_free(self):
+        """
+        Check if center case is free.
+        Then checks the top left and right corners and tries
+        to fill it's opposed diagonal.
+        """
         board = self.board
         if not board[1][1]:
             if board[0][0] == self.player and not board[2][2]:
@@ -151,19 +181,25 @@ class Board:
             #     return None
 
         # Diagonals
-        diagonal0, diagonal1 = self.get_diagonals()
-        if np.sum(diagonal0 == target) == 2 and \
-           np.sum(diagonal0 == '') == 1:
-            diagonal0[diagonal0 == ''] = self.player
-            self.board[np.diag_indices_from(self.board)] = diagonal0
-            return None
-        if np.sum(diagonal1 == target) == 2 and \
-           np.sum(diagonal0 == '') == 1:
-            diagonal1[diagonal1 == ''] = self.player
-            # Inverted diagonal indices
-            dinv = (np.array([0, 1, 2]), np.array([2, 1, 0]))
-            self.board[dinv] = diagonal1
-            return None
+        for diagonal in self.diags:
+            if np.sum(diagonal == target) == 2 and \
+               np.sum(diagonal == '') == 1:
+                diagonal[diagonal == ''] = self.player
+                return None
+            
+        # diagonal0, diagonal1 = self.get_diagonals()
+        # if np.sum(diagonal0 == target) == 2 and \
+        #    np.sum(diagonal0 == '') == 1:
+        #     diagonal0[diagonal0 == ''] = self.player
+        #     self.board[np.diag_indices_from(self.board)] = diagonal0
+        #     return None
+        # if np.sum(diagonal1 == target) == 2 and \
+        #    np.sum(diagonal0 == '') == 1:
+        #     diagonal1[diagonal1 == ''] = self.player
+        #     # Inverted diagonal indices
+        #     dinv = (np.array([0, 1, 2]), np.array([2, 1, 0]))
+        #     self.board[dinv] = diagonal1
+        #     return None
         
         raise NoMove
     
@@ -192,22 +228,92 @@ class Board:
         self.complete_triple(target)
         print('Achieved')
 
+
+    def count_corners(self, target = None):
+        """
+        Returns the number of corners occupied by the current
+        self.player token. (0 - 4)
+        """
+        if not target:
+            target = self.player
+            
+        return np.sum(self.board[[0,0,-1,-1],[0,-1,0,-1]] == target)
+
+    
     def defend_corner(self):
         """
-        Checks if the user has filled one of the corners.
+        Checks if the other player has filled one of the corners.
         Fills the center case if True and returns True.
         Else returns False.
         """
-        ### IMPLEMENT ME
-        pass
+        if self.player == 'x':
+            other_player = 'o'
+        else:
+            other_player = 'x'
 
+        return self.count_corners(other_player) >= 1
+
+
+    def scan_one(self, array3):
+        """
+        array3: An array with 3 elements.
+        Scans if token self.token occupies one and only one token
+        in array3. All other cases must be empty.
+        Returns True if valid. If not, False.
+        """
+        return np.sum(array3 == self.player) == 1 and \
+               np.sum(array3 == '') == 2
+
+
+    def fill_one(self, array3):
+        """
+        array3: An array of 3 elements.
+        Fills the first empty case in array3 with self.player token.
+        Raise NoMove exception if not possible
+        """
+        for i in range(3):
+            if not array3[i]:
+                array3[i] = self.player
+                return None
+        raise NoMove
+    
+    def complete_second(self):
+        """
+        Will scan rows, columns and diagonals (in that order)
+        with only one current player case filled and no cases filled
+        by the other player. It will then fill one of those cases.
+        Returns NoMove exception if no occurrence is possible.
+        """
+        for i in range(3):
+            if self.scan_one(self.rows[i]):
+                self.fill_one(self.rows[i])
+                return None
+
+        for j in range(3):
+            if self.scan_one(self.columns[j]):
+                self.fill_one(self.columns[j])
+                return None
+
+        for diagonal in self.diags:
+            if self.scan_one(diagonal):
+                self.fill_one(diagonal)
+                return None
+                
+        raise NoMove
+        
         
     def computer_turn(self):
+        if self.player == 'x':
+            other_player = 'o'
+        else:
+            other_player = 'x'
+        
         self.turns += 1
         input('Computer turn... (Press any key to continue)')
         if self.turns <= 2:
             if self.turns == 2:
                 if self.defend_corner():
+                    self.board[1][1] = self.player
                     return None
             try:
                 self.fill_corner()
@@ -227,18 +333,26 @@ class Board:
         except NoMove:
             pass
 
-
         try:
             self.diagonal_free()
             return None
         except NoMove:
             pass
 
+        if (self.turns <= 4 and self.count_corners(other_player) != 2) or \
+           self.count_corners() >= 2:
+            ### STILL need to check for unimportant cases
+            try:
+                self.fill_corner()
+                return None
+            except NoMove:
+                pass
+
         try:
-            self.fill_corner()
+            self.complete_second()
             return None
         except NoMove:
-            pass     
+            pass
         
         # If no other possible options
         self.fill_next()
@@ -286,7 +400,7 @@ class Board:
         print('Welcome!')
         self.print_score()
         input('New game?\n(Press any key to continue)')
-        print(board)
+        print(self)
         while True:
             current_player = self.player
             if current_player == 'x':
@@ -308,10 +422,11 @@ class Board:
                 self.player = next(Board.players)
             elif self.endgame():
                 self.print_score()
-                self.print("It's a draw!")
+                print("It's a draw!")
+                input('Press any key to continue...')
                 self.reset()
-                self.print('New game')
-                self.print(self)
+                print('New game')
+                print(self)
                 self.player = next(Board.players)
             else:
                 self.player = next(Board.players)
