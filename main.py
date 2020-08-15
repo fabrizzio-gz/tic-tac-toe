@@ -29,30 +29,12 @@ class Board:
         self.computer_score = 0
         self.turns = 0
 
-    def set_case(self, i, j, player=None):
-        """
-        i, j: The i and j indexes of the case. Starting from top left
-              corner.
-        symbol: Either 'x' or 'o'
-        """
-        self.turns += 1
-        if not player:
-            player = self.player
-        # Error checking
-        assert i <= 2, "Invalid i case"
-        assert j <= 2, "Invalid j case"
-        assert player in ('x', 'o'), "Usage: symbol 'x' or 'o'"
-        assert not self.board[i][j], "Case already set"
-
-        self.board[i][j] = player
-        print(self)
-
     def check_winner(self, player=None):
         """
         player: The token to check
-        Checks if a rouw, column or diagonal is filled with 'player' token.
-        If no 'player' token is given, uses curren self.player one.
-        Returns True if condition valid. False otherwise.
+        Checks if a row, column or diagonal is filled with 'player' token.
+        If no 'player' token is given, uses curren self.player token.
+        Returns True if condition is valid. False otherwise.
         """
         if not player:
             player = self.player
@@ -79,8 +61,7 @@ class Board:
 
     def fill_next(self):
         """
-        Scans all cases of the board from left to right, top to bottom.
-        Fills first empty case found with self.player token.
+        Fills the next empty case with self.player token. 
         """
         for i in range(3):
             for j in range(3):
@@ -114,10 +95,9 @@ class Board:
         
     def diagonal_free(self):
         """
-        Check if center case is free.
-        Then checks every corner in the board and fills its diagonally
-        opposed case if it's empty.
-        Raises NoMove exception if not possible for all corners.
+        If center case is free, will attempt to fill the diagonally opposed case
+        of a case already filled with self.player token.
+        Raises a NoMove exception if conditions aren't met.
         """
         if not self.board[1][1]:
             for d in range(2):
@@ -131,7 +111,7 @@ class Board:
         else:
             raise NoMove
 
-    def complete_triple(self, target=None):###
+    def complete_triple(self, target=None):
         """
         target: A player token. If none is given, will use current
         self.player token.
@@ -208,9 +188,8 @@ class Board:
 
     def defend_corner(self):
         """
-        Checks if the other player has filled one of the corners.
-        Fills the center case if True and returns True.
-        Else returns False.
+        Checks if the other player has filled one of the corners of the board.
+        Returns True or False.
         """
         if self.player == 'x':
             other_player = 'o'
@@ -318,8 +297,8 @@ class Board:
             pass
 
         # During mid game, attempts to continue filling corners.
-        # First verifies that some corners are already filled by the current
-        # token or that the opponent hasn't filled the corners already so that
+        # First verifies that some corners are already filled by the player
+        # or that the opponent hasn't filled the corners already so that
         # it's a worthy move.
         if (self.turns <= 4 and self.count_corners(other_player) != 2) or \
            self.count_corners() >= 2:
@@ -343,12 +322,12 @@ class Board:
 
     def get_index(self, text):
         """
-        Will prompt the player for a row or coluumn index.
+        Will prompt the player for a row or column index.
         Returns an integer index between 0 - 2.
         """
         index = 0
         while True:
-            index = input("Choose a {}\n".format(text))
+            index = input("Choose a {} (0 - 2)\n".format(text))
             try:
                 index = int(index)
             except ValueError:
