@@ -1,5 +1,6 @@
 from itertools import cycle
 import pygame
+import logic
 
 # Setting up window
 HEIGHT = 600
@@ -13,6 +14,8 @@ BORDER = 5
 FILL_CELLS = False
 CROSS = "img/cross.png"
 CIRCLE = "img/circle.png"
+COMPUTER = 'x'
+PLAYER = 'o'
 
 # Defining colors
 BLACK = (0, 0, 0)
@@ -50,10 +53,15 @@ class Board(pygame.sprite.Sprite):
 
 
     def update(self):
+        global computer_turn
         if self.draw_lines:
             self.draw_board()
         elif not self.created:
             self.create_cell_zones()
+        elif computer_turn:
+            i, j = board_logic.computer_turn()
+            cells_array[i][j].fill(COMPUTER)
+            computer_turn = False
 
     def draw_board(self):
         # Vertical line
@@ -92,7 +100,8 @@ class Board(pygame.sprite.Sprite):
                 x = i * CELL + BORDER
                 y = j * CELL + BORDER
                 pos = (x + self.rect.left, y + self.rect.top)
-                cell = Cell(pos)
+                ij = (i, j)
+                cell = Cell(pos, ij)
                 all_sprites.add(cell)
                 cells.add(cell)
                 row.append(cell)
@@ -101,7 +110,11 @@ class Board(pygame.sprite.Sprite):
 
 # Board cell class:
 class Cell(pygame.sprite.Sprite):
-    def __init__(self, pos):
+    def __init__(self, pos, ij):
+        """
+        pos: position tuple to create cell.
+        ij: i, j tuple of cell.
+        """
         pygame.sprite.Sprite.__init__(self)
         self.image = pygame.Surface((CELL - BORDER,
                                      CELL - BORDER))
@@ -114,33 +127,19 @@ class Cell(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.topleft = pos
         self.i = 0
+        self.ij = ij
 
     def update(self):
         pass
-        # if self.is_clicked():
-        #     if self.i == 0:
-        #         print('o')
-        #         self.image = self.circle
-        #         self.i = 1
-        #     elif self.i == 1:
-        #         print('x')
-        #         self.image = self.cross
-        #         self.i = 0
 
     def hits(self, pos):
         return self.rect.collidepoint(pos)
 
-    def change(self):
-        self.image = next(self.token)
-        return None
-        if self.i == 0:
-            print('x')
+    def fill(self, token):
+        if token == COMPUTER:
             self.image = self.cross
-            self.i = 1
-        elif self.i == 1:
-            print('o')
+        else:
             self.image = self.circle
-#            self.i = 0
 
     def is_clicked(self):
         events = pygame.event.get()
@@ -148,15 +147,22 @@ class Cell(pygame.sprite.Sprite):
             if ev.type == pygame.MOUSEBUTTONUP:
                 return self.rect.collidepoint(
                     pygame.mouse.get_pos())
-#        return pygame.mouse.get_pressed()[0] and self.rect.collidepoint(pygame.mouse.get_pos())
+
+    def indices(self):
+        return self.ij
 
 
+computer_turn = True
 all_sprites = pygame.sprite.Group()
 cells = pygame.sprite.Group()
 cells_array = []
 board = Board()
 all_sprites.add(board)
-        
+
+# Logic
+board_logic = logic.Board()
+
+
 # Game loop
 running = True
 while running:
@@ -170,16 +176,13 @@ while running:
             pos = pygame.mouse.get_pos()
             for cell in cells:
                 if cell.hits(pos):
-                    cell.change()
-    # if pygame.mouse.get_pressed()[0]:
-    #     pos = pygame.mouse.get_pos()
-    #     clicked_cells = [cell for cell in cells
-    #                      if cell.rect.collidepoint(pos)]
-    #     for cell in clicked_cells:
-    #         cell.paint():
+                    cell.fill(PLAYER)
+                    ij = cell.indices()
+                    board_logic.user_turn(ij)
+                    computer_turn = True
     # Update screen
     all_sprites.update()
-    
+
     # Draw / render
     screen.fill(BLACK)
     all_sprites.draw(screen)

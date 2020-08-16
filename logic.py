@@ -24,7 +24,7 @@ class Board:
         # To to bottom, right to left diagonal
         self.diag1 = np.einsum('ii->i', np.fliplr(self.board))
         self.diags = [self.diag0, self.diag1]
-        self.player = next(Board.players)
+        self.player = '-'
         self.user_score = 0
         self.computer_score = 0
         self.turns = 0
@@ -62,17 +62,19 @@ class Board:
     def fill_next(self):
         """
         Fills the next empty case with self.player token. 
+        Returns th i and j indices played.
         """
         for i in range(3):
             for j in range(3):
                 if not self.board[i][j]:
                     self.board[i][j] = self.player
-                    return None
+                    return (i, j)
 
     def fill_corner(self):
         """
         Chooses one corner randomly.
         If it's empty, fills it with self.player token.
+        Returns the played indices.
         Raises NoMove exception if not possible for all corners.
         """
         random_corners = list(range(4))
@@ -80,16 +82,16 @@ class Board:
         for i in random_corners:
             if i == 0 and not self.board[0][0]:
                 self.board[0][0] = self.player
-                break
+                return (0, 0)
             elif i == 1 and not self.board[0][2]:
                 self.board[0][2] = self.player
-                break
+                return (0, 2)
             elif i == 2 and not self.board[2][0]:
                 self.board[2][0] = self.player
-                break
+                return (2, 0)
             elif i == 3 and not self.board[2][2]:
                 self.board[2][2] = self.player
-                break
+                return (2, 2)
         else:
             raise NoMove
         
@@ -105,7 +107,16 @@ class Board:
                     if self.diags[d][filled] == self.player and \
                        not self.diags[d][empty]:
                         self.diags[d][empty] = self.player
-                        return None
+                        if d == 0:
+                            if filled == 0:
+                                return (2, 2)
+                            else:
+                                return (0, 0)
+                        else:
+                            if filled == 0:
+                                return (2, 0)
+                            else:
+                                return (0, 2)
             else:
                 raise NoMove
         else:
@@ -119,37 +130,49 @@ class Board:
         If 2 cases are filled with 'target', it will fill the remaining case
         with target.
         If no occurrences take place, raises NoMove exception.
+        Returns an i, j tuple of the filled case
         """
         def try_fill(array3):
             """
             array3: An array with 3 elements.
             If two elements of the array are filled with 'target' token and
             one is empty, fills the empty case with current self.player token.
-            Returns True if successful. False if not.
+            Returns a tuple with the index and True if successful. 
+            False and 0 if unsuccessful.
             """
             if np.sum(array3 == target) == 2 and \
                np.sum(array3 == '') == 1:
-                array3[array3 == ''] = self.player
-                return True
-            return False
+                for index in range(3):
+                    if array3[index] == '':
+                        array3[index] = self.player
+                        return (True, index)
+            return (False, 0)
             
         if not target:
             target = self.player
         
         # Rows
-        for row in self.rows:
-            if try_fill(row):
-                return None
+        for i, row in enumerate(self.rows):
+            cond, j = try_fill(row)
+            if cond:
+                return (i, j)
 
         # Columns
-        for column in self.columns:
-            if try_fill(column):
-                return None
+        for j, column in enumerate(self.columns):
+            cond, i = try_fill(column)
+            if cond:
+                return (i, j)
 
         # Diagonals
-        for diagonal in self.diags:
-            if try_fill(diagonal):
-                return None
+        for d, diagonal in enumerate(self.diags):
+            cond, empty = try_fill(diagonal)
+            if cond:
+                # First diagonal
+                if d == 0:
+                    return (empty, empty)
+                # Second diagonal
+                else:
+                    return (empty, 2 - empty)
 
         raise NoMove
 
@@ -158,23 +181,23 @@ class Board:
         Searches for rows, columns and diagonals with 2 occurrences of
         self.symbol and completes it to win.
         If no occurrences take place, complete_triple raises NoMove exception.
+        Returns and i,j tuple of the filled case
         """
-        self.complete_triple()
-        return None
+        return self.complete_triple()
 
     def avoid_losing(self):
         """
         Searches for rows, columns and diagonals with 2 occurrences of
-        the adversary of self.player token. 
+        the adversary of self.player token.
         Completes the empty case to avoid losing.
         If no occurrences take place, raises NoMove exception.
+        Returns an i, j tuple of the filled case.
         """
         if self.player == 'x':
             target = 'o'
         else:
             target = 'x'
-        self.complete_triple(target)
-        return None
+        return self.complete_triple(target)
 
     def count_corners(self, target=None):
         """
@@ -213,11 +236,12 @@ class Board:
         array3: An array of 3 elements.
         Fills the first empty case in array3 with self.player token.
         Raise NoMove exception if not possible
+        Returns the index of the filled case
         """
-        for i in range(3):
-            if not array3[i]:
-                array3[i] = self.player
-                return None
+        for index in range(3):
+            if not array3[index]:
+                array3[index] = self.player
+                return index
 
         raise NoMove
 
@@ -230,28 +254,35 @@ class Board:
         """
         for i in range(3):
             if self.scan_one(self.rows[i]):
-                self.fill_one(self.rows[i])
-                return None
+                j = self.fill_one(self.rows[i])
+                return (i, j)
 
         for j in range(3):
             if self.scan_one(self.columns[j]):
-                self.fill_one(self.columns[j])
-                return None
+                i = self.fill_one(self.columns[j])
+                return (i, j)
 
-        for diagonal in self.diags:
+        for d, diagonal in enumerate(self.diags):
             if self.scan_one(diagonal):
-                self.fill_one(diagonal)
-                return None
+                filled = self.fill_one(diagonal)
+                # Main diagonal
+                if d == 0:
+                    return (filled, filled)
+                else:
+                    return (filled, 2 - filled)
 
         raise NoMove
 
     def computer_turn(self):
         """
+        Swithches from last player.
         Attempts different moves.
         If any move succeds, it returns None.
         When a move fails, it raises a NoMove exception and
         attempts the next move.
+        Returns the indeces i, j of the filled case.
         """
+        self.player = next(Board.players)
         self.turns +=1
         if self.player == 'x':
             other_player = 'o'
@@ -267,32 +298,28 @@ class Board:
             if self.turns == 2:
                 if self.defend_corner():
                     self.board[1][1] = self.player
-                    return None
+                    return (1, 1)
             try:
-                self.fill_corner()
-                return None
+                return self.fill_corner()
             except NoMove:
                 pass
 
         # Attempts to win the game with a single move.
         try:
-            self.win_move()
-            return None
+            return self.win_move()
         except NoMove:
             pass
 
         # If the opponent is about to complete a triple, avoid it.
         try:
-            self.avoid_losing()
-            return None
+            return self.avoid_losing()
         except NoMove:
             pass
 
         # Attempts filling the diagonally opposed case if
         # the central case is empty.
         try:
-            self.diagonal_free()
-            return None
+            return self.diagonal_free()
         except NoMove:
             pass
 
@@ -303,67 +330,41 @@ class Board:
         if (self.turns <= 4 and self.count_corners(other_player) != 2) or \
            self.count_corners() >= 2:
             try:
-                self.fill_corner()
-                return None
+                return self.fill_corner()
             except NoMove:
                 pass
 
         # If no other option, will complete any row/column/diagonal
         # that has one player token and two empty cases.
         try:
-            self.complete_second()
-            return None
+            return self.complete_second()
         except NoMove:
             pass
         
         # If no other possible options, fill any empty case.
-        self.fill_next()
-        return None
+        return self.fill_next()
 
-    def get_index(self, text):
-        """
-        Will prompt the player for a row or column index.
-        Returns an integer index between 0 - 2.
-        """
-        index = 0
-        while True:
-            index = input("Choose a {} (0 - 2)\n".format(text))
-            try:
-                index = int(index)
-            except ValueError:
-                print('Please enter a number')
-                continue
-            if index > 2:
-                print('Invalid input. Possible values: 0 - 2')
-            else:
-                break
-        return index
 
-    def try_case(self, i, j):
+    def user_turn(self, pos):
         """
-        Will atempt filling the case[i][j].
-        Returns True on success. False otherwise.
-        """
-        if not self.board[i][j]:
-            self.board[i][j] = self.player
-            return True
-        return False
-
-    def user_turn(self):
-        """
-        Prompts the user for a row and a column index.
-        Verifies case isn't filled.
+        pos: A i, j tuple.
+        Updates the game stats and switches to next
+        player.
+        Verifies tuple are valid inputs.
+        Verifies the current case is empty
+        Fills board and returns True on success.
+        Else returns False.
         """
         self.turns += 1
-        print('Your turn')
-        while True:
-            i = self.get_index('row')
-            j = self.get_index('column')
-            if self.try_case(i, j):
-                break
-            else:
-                print('Case is filled. Choose another one!')
-        return None
+        self.player = next(Board.players)
+        i = pos[0]
+        j = pos[1]
+        if i >= 0 and i <= 2:
+            if j >= 0 and j <= 2:
+                if not self.board[i][j]:
+                    self.board[i][j] = self.player
+                    return True
+        return False
 
     def play(self):
         """
@@ -422,30 +423,6 @@ class Board:
         self.board.fill('')
         self.turns = 0
 
-    def computer_win(self):
-        """
-        Prints computer winning message.
-        Increments computer score by one.
-        """
-        print('Computer won!')
-        input('Press enter to continue...')
-        self.computer_score += 1
-
-    def player_win(self):
-        """
-        Prints player winning message.
-        Increases player score.
-        """
-        print('You win!')
-        input('Press enter to continue...')
-        self.user_score += 1
-
-    def print_score(self):
-        """
-        Prints score
-        """
-        print('Current score is:\n Player\t: {}\n CPU\t: {}'
-              .format(self.user_score,self.computer_score))
 
     def __str__(self):
         """
@@ -462,7 +439,3 @@ class Board:
                 board_str += '{0: ^5s}+{0: ^5s}+{0: ^5s}\n'.format(dash)
 
         return board_str
-
-
-board = Board()
-board.play()
