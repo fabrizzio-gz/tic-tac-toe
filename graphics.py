@@ -44,7 +44,7 @@ class Board(pygame.sprite.Sprite):
         self.rect.top = TOP
         self.posy = 0
         self.posx = SIZE
-        self.step = 500
+        self.step = 50
         self.line_y = 1
         self.line_x = 2
         self.lines = 0
@@ -58,10 +58,18 @@ class Board(pygame.sprite.Sprite):
             self.draw_board()
         elif not self.created:
             self.create_cell_zones()
-        elif computer_turn:
-            i, j = board_logic.computer_turn()
-            cells_array[i][j].fill(COMPUTER)
-            computer_turn = False
+        if computer_turn:
+            ij = board_logic.computer_turn()
+            if ij is not None:
+                i, j = ij
+                print(board_logic)
+                cells_array[i][j].fill(COMPUTER)
+                computer_turn = False
+                if board_logic.check_winner() or \
+                   board_logic.endgame():
+                    board_logic.reset()
+                    self.reset()
+                    
 
     def draw_board(self):
         # Vertical line
@@ -92,13 +100,14 @@ class Board(pygame.sprite.Sprite):
                 self.draw_lines = False
 
     def create_cell_zones(self):
+        global computer_turn
         self.created = True
         for i in range(3):
             row = []
             for j in range(3):
                 # Creating topleft coordinates for each cell
-                x = i * CELL + BORDER
-                y = j * CELL + BORDER
+                x = j * CELL + BORDER
+                y = i * CELL + BORDER
                 pos = (x + self.rect.left, y + self.rect.top)
                 ij = (i, j)
                 cell = Cell(pos, ij)
@@ -106,6 +115,13 @@ class Board(pygame.sprite.Sprite):
                 cells.add(cell)
                 row.append(cell)
             cells_array.append(row)
+        # Allow computer to play after cells have been created
+        computer_turn = True
+
+    def reset(self):
+        global cells
+        for cell in cells:
+            cell.reset()
 
 
 # Board cell class:
@@ -128,6 +144,7 @@ class Cell(pygame.sprite.Sprite):
         self.rect.topleft = pos
         self.i = 0
         self.ij = ij
+        self.make_empty = False
 
     def update(self):
         pass
@@ -148,11 +165,17 @@ class Cell(pygame.sprite.Sprite):
                 return self.rect.collidepoint(
                     pygame.mouse.get_pos())
 
+    def reset(self):
+        self.image = pygame.Surface((CELL - BORDER,
+                                     CELL - BORDER))
+        self.make_empty = False
+
     def indices(self):
         return self.ij
 
 
-computer_turn = True
+computer_turn = False
+player_turn = False
 all_sprites = pygame.sprite.Group()
 cells = pygame.sprite.Group()
 cells_array = []
@@ -161,6 +184,7 @@ all_sprites.add(board)
 
 # Logic
 board_logic = logic.Board()
+print(board_logic)
 
 
 # Game loop
@@ -180,6 +204,10 @@ while running:
                     ij = cell.indices()
                     board_logic.user_turn(ij)
                     computer_turn = True
+                    if board_logic.check_winner() or \
+                       board_logic.endgame():
+                        board_logic.reset()
+                        board.reset()
     # Update screen
     all_sprites.update()
 

@@ -24,6 +24,7 @@ class Board:
         # To to bottom, right to left diagonal
         self.diag1 = np.einsum('ii->i', np.fliplr(self.board))
         self.diags = [self.diag0, self.diag1]
+        self.players = cycle('xo')
         self.player = '-'
         self.user_score = 0
         self.computer_score = 0
@@ -282,14 +283,12 @@ class Board:
         attempts the next move.
         Returns the indeces i, j of the filled case.
         """
-        self.player = next(Board.players)
+        self.player = next(self.players)
         self.turns +=1
         if self.player == 'x':
             other_player = 'o'
         else:
             other_player = 'x'
-
-        input('Computer turn... (Press any key to continue)')
 
         # Starts by filling any of the corners.
         if self.turns <= 2:
@@ -356,7 +355,7 @@ class Board:
         Else returns False.
         """
         self.turns += 1
-        self.player = next(Board.players)
+        self.player = next(self.players)
         i = pos[0]
         j = pos[1]
         if i >= 0 and i <= 2:
@@ -398,7 +397,7 @@ class Board:
                 print('New game')
                 print(self)
                 # Loser starts next game
-                self.player = next(Board.players)
+                self.player = next(self.players)
             elif self.endgame():
                 self.print_score()
                 print("It's a draw!")
@@ -406,9 +405,9 @@ class Board:
                 self.reset()
                 print('New game')
                 print(self)
-                self.player = next(Board.players)
+                self.player = next(self.players)
             else:
-                self.player = next(Board.players)
+                self.player = next(self.players)
 
     def endgame(self):
         """
