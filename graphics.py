@@ -42,7 +42,17 @@ pygame.display.set_caption(TITLE)
 clock = pygame.time.Clock()
 
 
+# Ordered sprite group to sort by z attribute
+class OrderedGroup(pygame.sprite.Group):
+    def by_z(self, spr):
+        return spr.z
 
+    def draw(self, surface):
+        sprites = self.sprites()
+        surface_blit = surface.blit
+        for spr in sorted(sprites, key=self.by_z):
+            self.spritedict[spr] = surface_blit(spr.image, spr.rect)
+        self.lostsprites = []
 
 # Board sprite
 class Board(pygame.sprite.Sprite):
@@ -62,6 +72,7 @@ class Board(pygame.sprite.Sprite):
         self.lines = 0
         self.draw_lines = True
         self.created = False
+        self.z = 1
 
 
     def update(self):
@@ -95,11 +106,24 @@ class Board(pygame.sprite.Sprite):
         """
         i0, j0 = ij_start
         i1, j1 = ij_end
+        # To draw larger line
+        x0, y0, x1, y1 = [CELL // 4] * 4
+        # Decide size depending on orientation
+        # Horizontal
+        if i0 == i1:
+            y0, y1 = 0, 0
+        # Vertical
+        elif j0 == j1:
+            x0, x1 = 0, 0
+        # 2nd diag:
+        elif i0 != j0:
+            x0 *= -1
+            x1 *= -1
         y_start = CELL // 2
         x_start = CELL // 2
         pygame.draw.line(self.image, GREEN,
-                         (x_start + j0 * CELL, y_start + i0 * CELL),
-                         (x_start + j1 * CELL, y_start + j1 * CELL), 3)
+                         (x_start + j0 * CELL - x0, y_start + i0 * CELL - y0),
+                         (x_start + j1 * CELL + x1, y_start + i1 * CELL + y1), 4)
         sleep(1)
 
     def draw_board(self):
@@ -175,6 +199,8 @@ class Cell(pygame.sprite.Sprite):
         self.i = 0
         self.ij = ij
         self.make_empty = False
+        self.z = 0
+        self.free = True
 
     def update(self):
         pass
@@ -182,7 +208,11 @@ class Cell(pygame.sprite.Sprite):
     def hits(self, pos):
         return self.rect.collidepoint(pos)
 
+    def is_free(self):
+        return self.free
+
     def fill(self, token):
+        self.free = False
         global cpu_timer
         if token == COMPUTER:
             self.image = self.cross
@@ -201,6 +231,7 @@ class Cell(pygame.sprite.Sprite):
         self.image = pygame.Surface((CELL - BORDER,
                                      CELL - BORDER))
         self.make_empty = False
+        self.free = True
 
     def indices(self):
         return self.ij
@@ -208,7 +239,8 @@ class Cell(pygame.sprite.Sprite):
 
 computer_turn = False
 player_turn = False
-all_sprites = pygame.sprite.Group()
+# all_sprites = pygame.sprite.Group()
+all_sprites = OrderedGroup()
 cells = pygame.sprite.Group()
 cells_array = []
 board = Board()
@@ -234,7 +266,7 @@ while running:
         if event.type == pygame.MOUSEBUTTONUP:
             pos = pygame.mouse.get_pos()
             for cell in cells:
-                if cell.hits(pos):
+                if cell.hits(pos) and cell.is_free():
                     cell.fill(PLAYER)
                     ij = cell.indices()
                     board_logic.user_turn(ij)

@@ -46,12 +46,14 @@ class Board:
         for i in range(3):
             if np.sum(self.rows[i] == player) == 3:
                 print('Horizontal check')
+                print(i)
                 return (True, (i, 0), (i, 2))
 
         # Vertical win
         for j in range(3):
             if np.sum(self.columns[j] == player) == 3:
                 print('Vertical check')
+                print(j)
                 return (True, (0, j), (2, j))
 
         # Diagonal win
@@ -59,7 +61,7 @@ class Board:
             if np.sum(self.diags[d] == player) == 3:
                 print('Diagonal check')
                 # Main diagonal
-                if d == 1:
+                if d == 0:
                     return (True, (0, 0), (2, 2))
                 # Second diagnoal
                 else:
