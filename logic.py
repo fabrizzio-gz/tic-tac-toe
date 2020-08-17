@@ -35,7 +35,9 @@ class Board:
         player: The token to check
         Checks if a row, column or diagonal is filled with 'player' token.
         If no 'player' token is given, uses curren self.player token.
-        Returns True if condition is valid. False otherwise.
+        Returns a tuple (True, (i0,j0), (i1,j1)) if winning conditions attained.
+        (i0, j0) and (i1, j1) are the border indices of the winning cases.
+        (False, 0, 0) otherwise.
         """
         if not player:
             player = self.player
@@ -44,25 +46,30 @@ class Board:
         for i in range(3):
             if np.sum(self.rows[i] == player) == 3:
                 print('Horizontal check')
-                return True
+                return (True, (i, 0), (i, 2))
 
         # Vertical win
         for j in range(3):
             if np.sum(self.columns[j] == player) == 3:
                 print('Vertical check')
-                return True
+                return (True, (0, j), (2, j))
 
         # Diagonal win
         for d in range(2):
             if np.sum(self.diags[d] == player) == 3:
                 print('Diagonal check')
-                return True
+                # Main diagonal
+                if d == 1:
+                    return (True, (0, 0), (2, 2))
+                # Second diagnoal
+                else:
+                    return (True, (0, 2), (2, 0))
 
-        return False
+        return (False, 0, 0)
 
     def fill_next(self):
         """
-        Fills the next empty case with self.player token. 
+        Fills the next empty case with self.player token.
         Returns th i and j indices played.
         """
         for i in range(3):
