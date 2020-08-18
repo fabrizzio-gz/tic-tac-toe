@@ -3,7 +3,7 @@ import pygame
 import logic
 
 # TODO:
-# - Add win/lose/draw message.
+# - Clean code.
 
 # Setting up window
 HEIGHT = 600
@@ -21,7 +21,7 @@ CROSS = "img/cross.png"
 CIRCLE = "img/circle.png"
 COMPUTER = 'x'
 PLAYER = 'o'
-CPU_TIMER = FPS // 2
+CPU_TIMER = FPS // 5
 
 # Defining colors
 BLACK = (0, 0, 0)
@@ -123,7 +123,6 @@ class Board(pygame.sprite.Sprite):
                     self.set_draw_triple_line((True, ij_start, ij_end, False))
                     board_logic.reset()
                     cpu_score.add1()
-                    self.reset_on_click()
                     self.freeze_cells(True)
                     end_message.write('You lose!')
                 elif board_logic.endgame():
@@ -135,6 +134,7 @@ class Board(pygame.sprite.Sprite):
         elif self.draw_triple_line[0] and cpu_timer % CPU_TIMER == 0:
             _, ij_start, ij_end, is_win = self.draw_triple_line
             self.triple_line(ij_start, ij_end, is_win)
+            self.reset_on_click()
             self.set_draw_triple_line((False, (0, 0), (0, 0), False))
 
     def set_draw_triple_line(self, tup):
@@ -377,7 +377,6 @@ while running:
                                                         ij_end, True))
                             p1_score.add1()
                             board_logic.reset()
-                            board.reset_on_click()
                             end_message.write('You win!')
                         elif board_logic.endgame():
                             # Tie
