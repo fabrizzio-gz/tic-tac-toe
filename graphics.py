@@ -102,6 +102,7 @@ class Board(pygame.sprite.Sprite):
         global computer_turn
         global all_sprites
         global cpu_score
+        global end_message
         if self.draw_lines:
             self.draw_board()
         elif not self.created:
@@ -117,14 +118,17 @@ class Board(pygame.sprite.Sprite):
                 cells_array[i][j].fill(COMPUTER)
                 computer_turn = False
                 if board_logic.check_winner()[0]:
+                    # CPU win
                     _, ij_start, ij_end = board_logic.check_winner()
                     self.set_draw_triple_line((True, ij_start, ij_end, False))
                     board_logic.reset()
                     cpu_score.add1()
                     self.reset_on_click()
                     self.freeze_cells(True)
+                    end_message.write('You lose!')
                 elif board_logic.endgame():
                     board_logic.reset()
+                    end_message.write('     Tie!')
                     self.reset_on_click()
                     self.freeze_cells(True)
         # Drawing strike line
@@ -337,6 +341,8 @@ p1 = Text((posx, posy), 'P1')
 cpu = Text((posx, posy2), 'CPU')
 p1_score = Text((posx + space, posy), ': 0')
 cpu_score = Text((posx + space, posy2), ': 0')
+end_message = Text((WIDTH * 2 // 5, TOP // 2))
+all_sprites.add(end_message)
 
 # Game loop
 running = True
@@ -349,9 +355,10 @@ while running:
         if event.type == pygame.QUIT:
             running = False
         # Player's move
-        if event.type == pygame.MOUSEBUTTONUP:
+        if event.type == pygame.MOUSEBUTTONUP: # Add not computer_turn here
             # Reset game board
             if board.to_reset():
+                end_message.write('')
                 board.reset()
                 board.freeze_cells(False)
             else:
@@ -363,6 +370,7 @@ while running:
                         board_logic.user_turn(ij)
                         computer_turn = True
                         if board_logic.check_winner()[0]:
+                            # Player won
                             board.freeze_cells(True)
                             _, ij_start, ij_end = board_logic.check_winner()
                             board.set_draw_triple_line((True, ij_start,
@@ -370,7 +378,10 @@ while running:
                             p1_score.add1()
                             board_logic.reset()
                             board.reset_on_click()
+                            end_message.write('You win!')
                         elif board_logic.endgame():
+                            # Tie
+                            end_message.write('     Tie!')
                             board.freeze_cells(True)
                             board_logic.reset()
                             board.reset_on_click()
