@@ -6,6 +6,7 @@ import logic
 # TODO:
 # - Add score.
 # - Add win/lose/draw message.
+# - Fix strike line drawing taking longer
 
 # Setting up window
 HEIGHT = 600
@@ -34,6 +35,7 @@ BLUE = (0, 0, 255)
 
 # Initializing pygame and create window
 pygame.init()
+pygame.font.init()
 pygame.mixer.init()
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption(TITLE)
@@ -51,6 +53,24 @@ class OrderedGroup(pygame.sprite.Group):
         for spr in sorted(sprites, key=self.by_z):
             self.spritedict[spr] = surface_blit(spr.image, spr.rect)
         self.lostsprites = []
+
+
+class Text(pygame.sprite.Sprite):
+    def __init__(self, pos, text):
+        pygame.sprite.Sprite.__init__(self)
+        self.font = pygame.font.SysFont('Comic Sans MS', 30)
+        self.image = self.font.render('HI', True, GREEN, BLACK)
+        self.rect = self.image.get_rect()
+        self.pos = pos
+        self.rect.topleft = pos
+        self.write(text)
+        
+
+    def write(self, text):
+        self.image = self.font.render(text, True, GREEN)
+        self.rect = self.image.get_rect()
+        self.rect.topleft = self.pos
+
 
 # Board sprite
 class Board(pygame.sprite.Sprite):
@@ -84,6 +104,10 @@ class Board(pygame.sprite.Sprite):
             self.draw_board()
         elif not self.created:
             self.create_cell_zones()
+            # Text:
+            cpu_score = Text((WIDTH * 4 // 5, TOP * 1 // 3), 'HI')
+            user_score = Text((WIDTH * 4 // 5, TOP * 2 // 3), 'HI')
+
         # CPU move
         if computer_turn and cpu_timer % CPU_TIMER == 0 and \
            self.board_free:
@@ -301,7 +325,8 @@ all_sprites.add(board)
 # Logic
 board_logic = logic.Board()
 cpu_timer = 0
-print(board_logic)
+
+
 
 
 # Game loop
