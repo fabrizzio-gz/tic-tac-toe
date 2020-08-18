@@ -21,7 +21,7 @@ CROSS = "img/cross.png"
 CIRCLE = "img/circle.png"
 COMPUTER = 'x'
 PLAYER = 'o'
-CPU_TIMER = FPS // 5
+CPU_TIMER = FPS // 2
 
 # Defining colors
 BLACK = (0, 0, 0)
@@ -361,7 +361,7 @@ while running:
                 end_message.write('')
                 board.reset()
                 board.freeze_cells(False)
-            else:
+            elif not computer_turn:
                 pos = pygame.mouse.get_pos()
                 for cell in cells:
                     if cell.hits(pos) and cell.is_free():
