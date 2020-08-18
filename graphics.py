@@ -4,8 +4,6 @@ import pygame
 import logic
 
 # TODO:
-# - Lag computer input.
-# - Add triple lines upon winning/losing.
 # - Add score.
 # - Add win/lose/draw message.
 
@@ -25,7 +23,7 @@ CROSS = "img/cross.png"
 CIRCLE = "img/circle.png"
 COMPUTER = 'x'
 PLAYER = 'o'
-CPU_TIMER = FPS // 2
+CPU_TIMER = FPS // 5
 
 # Defining colors
 BLACK = (0, 0, 0)
@@ -73,7 +71,12 @@ class Board(pygame.sprite.Sprite):
         self.draw_lines = True
         self.created = False
         self.z = 1
-
+        # Tuple that determinates drawing triple line.
+        # ij_start, ij_end are ij indices to draw line
+        # Last condition says if player win is True or False
+        self.draw_triple_line = (False, (0, 0), (0, 0), False)
+        self.reset_cond = False
+        self.board_free = True
 
     def update(self):
         global computer_turn
@@ -82,7 +85,8 @@ class Board(pygame.sprite.Sprite):
         elif not self.created:
             self.create_cell_zones()
         # CPU move
-        if computer_turn and cpu_timer % CPU_TIMER == 0:
+        if computer_turn and cpu_timer % CPU_TIMER == 0 and \
+           self.board_free:
             ij = board_logic.computer_turn()
             if ij is not None:
                 i, j = ij
@@ -91,12 +95,22 @@ class Board(pygame.sprite.Sprite):
                 computer_turn = False
                 if board_logic.check_winner()[0]:
                     _, ij_start, ij_end = board_logic.check_winner()
-                    self.triple_line(ij_start, ij_end, win=False)
+                    self.set_draw_triple_line((True, ij_start, ij_end, False))
                     board_logic.reset()
-                    #self.reset()
+                    self.reset_on_click()
+                    self.freeze_cells(True)
                 elif board_logic.endgame():
                     board_logic.reset()
-                    self.reset()
+                    self.reset_on_click()
+                    self.freeze_cells(True)
+        # Drawing strike line
+        elif self.draw_triple_line[0] and cpu_timer % CPU_TIMER == 0:
+            _, ij_start, ij_end, is_win = self.draw_triple_line
+            self.triple_line(ij_start, ij_end, is_win)
+            self.set_draw_triple_line((False, (0, 0), (0, 0), False))
+
+    def set_draw_triple_line(self, tup):
+        self.draw_triple_line = tup
 
     def triple_line(self, ij_start, ij_end, win):
         """
@@ -153,6 +167,26 @@ class Board(pygame.sprite.Sprite):
             if self.posy < 0:
                 self.draw_lines = False
 
+    def new_board(self):
+        # Getting a black board
+        self.image = pygame.Surface((SIZE, SIZE))
+        self.image.set_colorkey(BLACK)
+        self.rect = self.image.get_rect()
+        self.rect.centerx = WIDTH // 2
+        self.rect.top = TOP
+        # Drawing lines
+        for line in range(1, 3):
+            # Vertical lines
+            pygame.draw.line(self.image, GREEN,
+                             (line * SIZE // 3, 0),
+                             (line * SIZE // 3, self.rect.bottom),
+                             2)
+            # Horizontal lines
+            pygame.draw.line(self.image, GREEN,
+                             (self.rect.left, line * SIZE // 3),
+                             (self.rect.right, line * SIZE // 3),
+                             2)
+
     def create_cell_zones(self):
         global computer_turn
         self.created = True
@@ -172,10 +206,24 @@ class Board(pygame.sprite.Sprite):
         # Allow computer to play after cells have been created
         computer_turn = True
 
+    def reset_on_click(self):
+        self.reset_cond = True
+
+    def to_reset(self):
+        return self.reset_cond
+
     def reset(self):
+        self.reset_cond = False
+        self.new_board()
         global cells
         for cell in cells:
             cell.reset()
+
+    def freeze_cells(self, freeze_cond):
+        global cells
+        self.board_free = not freeze_cond
+        for cell in cells:
+            cell.freeze(freeze_cond)
 
 
 # Board cell class:
@@ -208,6 +256,9 @@ class Cell(pygame.sprite.Sprite):
     def hits(self, pos):
         return self.rect.collidepoint(pos)
 
+    def freeze(self, freeze_cond):
+        self.free = not freeze_cond
+
     def is_free(self):
         return self.free
 
@@ -217,6 +268,7 @@ class Cell(pygame.sprite.Sprite):
         if token == COMPUTER:
             self.image = self.cross
         else:
+            # Reset timer for computer turn
             cpu_timer = 1
             self.image = self.circle
 
@@ -264,21 +316,29 @@ while running:
             running = False
         # Player's move
         if event.type == pygame.MOUSEBUTTONUP:
-            pos = pygame.mouse.get_pos()
-            for cell in cells:
-                if cell.hits(pos) and cell.is_free():
-                    cell.fill(PLAYER)
-                    ij = cell.indices()
-                    board_logic.user_turn(ij)
-                    computer_turn = True
-                    if board_logic.check_winner()[0]:
-                        _, ij_start, ij_end = board_logic.check_winner()
-                        board.triple_line(ij_start, ij_end, win=True)
-                        board_logic.reset()
-                        #board.reset()
-                    elif board_logic.endgame():
-                        board_logic.reset()
-                        board.reset()
+            # Reset game board
+            if board.to_reset():
+                board.reset()
+                board.freeze_cells(False)
+            else:
+                pos = pygame.mouse.get_pos()
+                for cell in cells:
+                    if cell.hits(pos) and cell.is_free():
+                        cell.fill(PLAYER)
+                        ij = cell.indices()
+                        board_logic.user_turn(ij)
+                        computer_turn = True
+                        if board_logic.check_winner()[0]:
+                            board.freeze_cells(True)
+                            _, ij_start, ij_end = board_logic.check_winner()
+                            board.set_draw_triple_line((True, ij_start,
+                                                        ij_end, True))
+                            board_logic.reset()
+                            board.reset_on_click()
+                        elif board_logic.endgame():
+                            board.freeze_cells(True)
+                            board_logic.reset()
+                            board.reset_on_click()
     # Update screen
     all_sprites.update()
 
