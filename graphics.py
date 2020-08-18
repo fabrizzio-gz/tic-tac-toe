@@ -1,12 +1,9 @@
 from itertools import cycle
-from time import sleep
 import pygame
 import logic
 
 # TODO:
-# - Add score.
 # - Add win/lose/draw message.
-# - Fix strike line drawing taking longer
 
 # Setting up window
 HEIGHT = 600
@@ -56,20 +53,23 @@ class OrderedGroup(pygame.sprite.Group):
 
 
 class Text(pygame.sprite.Sprite):
-    def __init__(self, pos, text):
+    def __init__(self, pos=(0, 0), text=''):
         pygame.sprite.Sprite.__init__(self)
-        self.font = pygame.font.SysFont('Comic Sans MS', 30)
-        self.image = self.font.render('HI', True, GREEN, BLACK)
+        self.font = pygame.font.SysFont('freesansbold.ttf', 32)
+        self.image = self.font.render(text, True, GREEN, BLACK)
         self.rect = self.image.get_rect()
-        self.pos = pos
         self.rect.topleft = pos
-        self.write(text)
-        
+        self.text = text
+        self.z = 0
 
     def write(self, text):
-        self.image = self.font.render(text, True, GREEN)
-        self.rect = self.image.get_rect()
-        self.rect.topleft = self.pos
+        self.text = text
+        self.image = self.font.render(text, True, GREEN, BLACK)
+
+    def add1(self):
+        score = int(self.text.split()[1]) + 1
+        self.text = ': ' + str(score)
+        self.write(self.text)
 
 
 # Board sprite
@@ -100,13 +100,12 @@ class Board(pygame.sprite.Sprite):
 
     def update(self):
         global computer_turn
+        global all_sprites
+        global cpu_score
         if self.draw_lines:
             self.draw_board()
         elif not self.created:
             self.create_cell_zones()
-            # Text:
-            cpu_score = Text((WIDTH * 4 // 5, TOP * 1 // 3), 'HI')
-            user_score = Text((WIDTH * 4 // 5, TOP * 2 // 3), 'HI')
 
         # CPU move
         if computer_turn and cpu_timer % CPU_TIMER == 0 and \
@@ -121,6 +120,7 @@ class Board(pygame.sprite.Sprite):
                     _, ij_start, ij_end = board_logic.check_winner()
                     self.set_draw_triple_line((True, ij_start, ij_end, False))
                     board_logic.reset()
+                    cpu_score.add1()
                     self.reset_on_click()
                     self.freeze_cells(True)
                 elif board_logic.endgame():
@@ -162,7 +162,6 @@ class Board(pygame.sprite.Sprite):
         pygame.draw.line(self.image, GREEN,
                          (x_start + j0 * CELL - x0, y_start + i0 * CELL - y0),
                          (x_start + j1 * CELL + x1, y_start + i1 * CELL + y1), 4)
-        sleep(1)
 
     def draw_board(self):
         # Vertical line
@@ -249,6 +248,9 @@ class Board(pygame.sprite.Sprite):
         for cell in cells:
             cell.freeze(freeze_cond)
 
+    def show_text(self):
+        return self.created
+
 
 # Board cell class:
 class Cell(pygame.sprite.Sprite):
@@ -312,7 +314,7 @@ class Cell(pygame.sprite.Sprite):
     def indices(self):
         return self.ij
 
-
+create_text = True
 computer_turn = False
 player_turn = False
 # all_sprites = pygame.sprite.Group()
@@ -326,8 +328,15 @@ all_sprites.add(board)
 board_logic = logic.Board()
 cpu_timer = 0
 
-
-
+# Text
+add_text = True
+posx, posy = WIDTH * 4 // 5, TOP * 1 // 3
+posy2 = TOP * 2 // 3
+space = 60
+p1 = Text((posx, posy), 'P1')
+cpu = Text((posx, posy2), 'CPU')
+p1_score = Text((posx + space, posy), ': 0')
+cpu_score = Text((posx + space, posy2), ': 0')
 
 # Game loop
 running = True
@@ -358,12 +367,21 @@ while running:
                             _, ij_start, ij_end = board_logic.check_winner()
                             board.set_draw_triple_line((True, ij_start,
                                                         ij_end, True))
+                            p1_score.add1()
                             board_logic.reset()
                             board.reset_on_click()
                         elif board_logic.endgame():
                             board.freeze_cells(True)
                             board_logic.reset()
                             board.reset_on_click()
+    # Add text after board creation
+    if add_text and board.show_text():
+        add_text = False
+        all_sprites.add(p1)
+        all_sprites.add(cpu)
+        all_sprites.add(p1_score)
+        all_sprites.add(cpu_score)
+
     # Update screen
     all_sprites.update()
 
