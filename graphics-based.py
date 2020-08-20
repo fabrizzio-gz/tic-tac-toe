@@ -24,15 +24,12 @@ PLAYER = 'o'
 CPU_TIMER = FPS // 5
 
 # Defining colors
-BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
-RED = (255, 0, 0)
 GREEN = (0, 255, 0)
-BLUE = (0, 0, 255)
+
 
 # Initializing pygame and create window
 pygame.init()
-pygame.font.init()
 pygame.mixer.init()
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption(TITLE)
@@ -53,9 +50,10 @@ class OrderedGroup(pygame.sprite.Group):
 
 
 class Text(pygame.sprite.Sprite):
-    def __init__(self, pos=(0, 0), text=''):
+    def __init__(self, font, pos=(0, 0), text=''):
         pygame.sprite.Sprite.__init__(self)
-        self.font = pygame.font.SysFont('freesansbold.ttf', 32)
+        #self.font = pygame.font.SysFont('freesansbold.ttf', 32)
+        self.font = font
         self.image = self.font.render(text, True, GREEN, BLACK)
         self.rect = self.image.get_rect()
         self.rect.topleft = pos
@@ -333,15 +331,16 @@ board_logic = logic.Board()
 cpu_timer = 0
 
 # Text
+font = pygame.font.SysFont('freesansbold.ttf', 32)
 add_text = True
 posx, posy = WIDTH * 4 // 5, TOP * 1 // 3
 posy2 = TOP * 2 // 3
 space = 60
-p1 = Text((posx, posy), 'P1')
-cpu = Text((posx, posy2), 'CPU')
-p1_score = Text((posx + space, posy), ': 0')
-cpu_score = Text((posx + space, posy2), ': 0')
-end_message = Text((WIDTH * 2 // 5, TOP // 2))
+p1 = Text(font, (posx, posy), 'P1')
+cpu = Text(font, (posx, posy2), 'CPU')
+p1_score = Text(font, (posx + space, posy), ': 0')
+cpu_score = Text(font, (posx + space, posy2), ': 0')
+end_message = Text(font, (WIDTH * 2 // 5, TOP // 2))
 all_sprites.add(end_message)
 
 # Game loop
