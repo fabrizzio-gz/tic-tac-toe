@@ -24,7 +24,7 @@ PLAYER = 'o'
 CPU_TIMER = FPS // 5
 
 # Defining colors
-WHITE = (255, 255, 255)
+BLACK = (0, 0, 0)
 GREEN = (0, 255, 0)
 
 
@@ -50,7 +50,29 @@ class OrderedGroup(pygame.sprite.Group):
 
 
 class Text(pygame.sprite.Sprite):
+    """Displays text
+
+    Methods
+    -------
+    write(text)
+        Change the object text to display to `text`
+    add1()
+        Add the text's last digit (score) by one.
+    """
+
     def __init__(self, font, pos=(0, 0), text=''):
+        """
+        Parameters
+        ----------
+        font : pygame.font
+            Pygame font to use for text.
+        pos : tuple, optional
+            tuple of x, y coordinates of the topleft position of the text
+            (default is 0, 0).
+        text : str, optional
+            Object's text (default is the empty string).
+        """
+        
         pygame.sprite.Sprite.__init__(self)
         #self.font = pygame.font.SysFont('freesansbold.ttf', 32)
         self.font = font
@@ -72,8 +94,36 @@ class Text(pygame.sprite.Sprite):
 
 # Board sprite
 class Board(pygame.sprite.Sprite):
+    """Tic-tac-toe board. 9x9 grid made of lines.
 
-    def __init__(self):
+    Attributes
+    ----------
+    image : pygame.Surface
+        A black square pygame.Surface of a specified size.
+    rect : pygame.Rect
+        Specifies `image` coordinates.
+        rect.centerx at `WIDTH // 2`.
+        rect.top at `TOP`.
+    step : int
+        Sets how fast will board be first drawn.
+    
+    
+    """
+
+    def __init__(self, SIZE=450, TOP=100, WIDTH=480):
+        """
+        Attributes
+        ----------
+        SIZE : int
+            Board is a square of size `SIZE` x `SIZE`
+            (default is 450)
+        TOP : int
+            Board top y coordinate (default is 100).
+        WIDTH : int
+            Game screen width.
+            Board is centered at `WIDHT // 2`
+        """
+        
         pygame.sprite.Sprite.__init__(self)
         self.image = pygame.Surface((SIZE, SIZE))
         self.image.set_colorkey(BLACK)
@@ -98,7 +148,7 @@ class Board(pygame.sprite.Sprite):
 
     def update(self):
         global computer_turn
-        global all_sprites
+        # global all_sprites
         global cpu_score
         global end_message
         if self.draw_lines:
