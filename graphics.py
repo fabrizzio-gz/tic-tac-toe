@@ -295,17 +295,19 @@ class Cell(pygame.sprite.Sprite):
         #self.token = cycle([self.cross, self.circle])
         self.rect = self.image.get_rect()
         self.rect.topleft = (pos[0] + BORDER, pos[1] + BORDER)
+        self.free = True
         #self.i = 0
         #self.ij = ij
         #self.make_empty = False
         self.z = 0
-        #self.free = True
 
 #     def update(self):
 #         pass
 
     def hits(self, pos):
-        return self.rect.collidepoint(pos)
+        if self.free:
+            return self.rect.collidepoint(pos)
+        return False
 
 #     def freeze(self, freeze_cond):
 #         self.free = not freeze_cond
@@ -313,8 +315,16 @@ class Cell(pygame.sprite.Sprite):
 #     def is_free(self):
 #         return self.free
 
-    def fill(self):
-        self.image = self.circle
+    def fill(self, token):
+        self.image = token
+        self.free = False
+
+    def computer_fill(self):
+        self.fill(self.cross)
+
+    def player_fill(self):
+        self.fill(self.circle)
+
         # self.free = False
         # global cpu_timer
         # if token == COMPUTER:
