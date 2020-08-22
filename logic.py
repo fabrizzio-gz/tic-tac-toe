@@ -2,10 +2,6 @@ from itertools import cycle
 from random import shuffle
 import numpy as np
 
-### TODO:
-# - 2 player mode.
-# - Choose player/cpu token.
-
 
 class NoMove(Exception):
     pass
@@ -30,7 +26,7 @@ class Board:
         self.computer_score = 0
         self.turns = 0
 
-    def check_winner(self, player=None):
+    def win_conditions(self, player=None):
         """
         player: The token to check
         Checks if a row, column or diagonal is filled with 'player' token.
@@ -45,27 +41,42 @@ class Board:
         # Horizontal win
         for i in range(3):
             if np.sum(self.rows[i] == player) == 3:
-                print('Horizontal check')
-                return (True, (i, 0), (i, 2))
+                # print('Horizontal check')
+                return (True,
+                        ((i, 0), (i, 2)))
 
         # Vertical win
         for j in range(3):
             if np.sum(self.columns[j] == player) == 3:
-                print('Vertical check')
-                return (True, (0, j), (2, j))
+                # print('Vertical check')
+                return (True,
+                        ((0, j), (2, j)))
 
         # Diagonal win
         for d in range(2):
             if np.sum(self.diags[d] == player) == 3:
-                print('Diagonal check')
+                # print('Diagonal check')
                 # Main diagonal
                 if d == 0:
-                    return (True, (0, 0), (2, 2))
+                    return (True,
+                            ((0, 0), (2, 2)))
                 # Second diagnoal
                 else:
-                    return (True, (0, 2), (2, 0))
+                    return (True,
+                            ((0, 2), (2, 0)))
 
-        return (False, 0, 0)
+        return (False, (0, 0))
+
+    def check_winner(self):
+        """Check if the current user has won the game"""
+        return self.win_conditions()[0]
+
+    def win_line_pos(self):
+        """
+        Return the (i0, j0) and (i1, j1) cases to draw a
+        winning line when a player has won.
+        """
+        return self.win_conditions()[1]
 
     def fill_next(self):
         """
@@ -372,49 +383,8 @@ class Board:
                     return True
         return False
 
-    def play(self):
-        """
-        Game loop.
-        Starts with computer turn.
-        Alternates turns between player/computer.
-        Verifies if there is a winner.
-        Verifies if there is a draw.
-        Starts new game alternating from last player.
-        """
-        current_player = self.player
-        print('Welcome!')
-        self.print_score()
-        input('New game?\n(Press any key to continue)')
-        print(self)
-        while True:
-            current_player = self.player
-            if current_player == 'x':
-                self.computer_turn()
-                print(self)
-            else:
-                self.user_turn()
-                print(self)
-            if self.check_winner():
-                if current_player == 'x':
-                    self.computer_win()
-                else:
-                    self.player_win()
-                self.print_score()
-                self.reset()
-                print('New game')
-                print(self)
-                # Loser starts next game
-                self.player = next(self.players)
-            elif self.endgame():
-                self.print_score()
-                print("It's a draw!")
-                input('Press any key to continue...')
-                self.reset()
-                print('New game')
-                print(self)
-                self.player = next(self.players)
-            else:
-                self.player = next(self.players)
+    def current_player(self):
+        return self.player
 
     def endgame(self):
         """
