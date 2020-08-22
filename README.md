@@ -14,7 +14,7 @@ Or launch `text_based.py` using a Python interpreter.
 To play the game, from the command line:
 `python3 ttt_game.py`
 Or launch `ttt_game.py`  using a Python interpreter.
-
+The game requires the image files of the `img` folder.
 ### Modules
 - `graphics.py` for sprites.
 - `logic.py` for computer AI.
